@@ -1,12 +1,11 @@
-from flask import Flask , jsonify , request
+from flask import Flask 
 from flask_sqlalchemy import SQLAlchemy
-from app.utils.classToDict import classToArrayOfDicts , classToDict
 from app.models import User , RefreshToken , Recipe , Ingrediant , Planning , PlanningRecipe
-from datetime import datetime, timedelta
-import bcrypt
-import jwt
-from dot import load_dotenv
+from dotenv import load_dotenv
 import os
+from app.middlewares.auth import authunticated , is_admin
+from app.controllers.auth import signup as signupRoute , login as loginRoute
+from app.controllers.user import getUsersRoute
 
 load_dotenv()
 
@@ -28,12 +27,7 @@ Plannings = Planning.PlanningsModel(db)
 PlanningRecipes = PlanningRecipe.PlanningRecipesModel(db)
 
 # db.init_app(app)
-token = jwt.encode({
-            'public_id': user.public_id,
-            'exp' : datetime.utcnow() + timedelta(minutes = 30)
-        }, app.config['SECRET_KEY'])
-with app.app_context():
-    db.create_all()
+is_authenthicated = authunticated(db , Users)
 
 @app.route('/')
 def index():
@@ -41,11 +35,22 @@ def index():
 
 
 @app.get('/users')
-def getUsers():
-  users = db.session.execute(db.select(Users).order_by(Users.username)).scalars().all()
-  res = classToArrayOfDicts(users)
-  return jsonify(res)
+@is_authenthicated
+@is_admin
+def getUsers(user):
+  return getUsersRoute(db,  Users)
 
+
+@app.post('/signup')
+def signup():
+   return signupRoute(db , Users)
+
+@app.post('/login')
+def login():
+   return loginRoute(db , Users)
+
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
     app.run(debug=True ,  port=8081 , host="0.0.0.0" , use_reloader=True)
