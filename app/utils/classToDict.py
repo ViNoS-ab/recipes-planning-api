@@ -1,5 +1,5 @@
 from sqlalchemy.orm.state import InstanceState
-
+from copy import deepcopy
 """ turns a class to an array of dictionaries"""
 def classToArrayOfDicts (src):
   res = []
@@ -8,13 +8,14 @@ def classToArrayOfDicts (src):
   return res
 
 def classToDict (src):
+  cpy = deepcopy(src)
   obj = {}
-  src.__dict__.pop("password", None)
-  src.__dict__.pop("_sa_instance_state", None)
-  for j , k in enumerate(src.__dict__):
-    fieldType = type(src.__dict__[k])
+  cpy.__dict__.pop("password", None)
+  cpy.__dict__.pop("_sa_instance_state", None)
+  for j , k in enumerate(cpy.__dict__):
+    fieldType = type(cpy.__dict__[k])
     if fieldType is InstanceState:
-      obj["id"] = src.__dict__[k]
+      obj["id"] = cpy.__dict__[k]
     else :
-      obj[k] = src.__dict__[k]
+      obj[k] = cpy.__dict__[k]
   return obj
