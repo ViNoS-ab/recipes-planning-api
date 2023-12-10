@@ -1,8 +1,9 @@
-from flask import jsonify , request
-from app.utils.createToken import generate_token
+from flask import jsonify , request , make_response
+from app.utils.createToken import generate_token , MAX_AGE
 from app.utils.classToDict import classToArrayOfDicts , classToDict
 import bcrypt
 import jwt
+
 
 def signup(db , Users):
     try:
@@ -16,11 +17,15 @@ def signup(db , Users):
         bytes = data['password'].encode('utf-8') 
         salt = bcrypt.gensalt() 
         hash = bcrypt.hashpw(bytes, salt) 
-        user = Users(username=data['username'] , password=hash , email=data['email']    )
+        user = Users(username=data['username'] , password=hash , email=data['email'] , role=data['role']   )
         db.session.add(user)
+        resObj = {'user': classToDict(user) , 'success': True}
         db.session.commit()
-        res = {'user': data, 'success': True}
-        return (jsonify(res) , 200)
+        resObj['user']['id'] = user.id
+        res = make_response(jsonify(resObj))
+        token = generate_token(user.id)
+        res.set_cookie('htua' , token , max_age=MAX_AGE )
+        return (res , 200)
 
     except Exception as e:
         print(e)
@@ -38,11 +43,17 @@ def login(db, Users):
         match = bcrypt.checkpw(data['password'].encode('utf-8'), user.password)
         if not match:
             return ( jsonify({'success': False , 'message': 'wrong password'})  , 400)
-        print(user.id)
         token = generate_token(user.id)
-        res = {'user': classToDict(user) , 'token': token , 'success': True}
-        return (jsonify(res) , 200)
+        resObj = {'user': classToDict(user) , 'success': True}
+        res = make_response(jsonify(resObj))
+        res.set_cookie('htua' , token , max_age=MAX_AGE, httponly=True )
+        return (res , 200)
         
     except Exception as e:
         print(f"error in login : type of error : {type(e)} \n error : {e}  ")
         return (jsonify({'success': False , 'message': 'there was an error signing up try again later'}) , 500)
+
+def logoutRoute () :
+    res = make_response(jsonify({'success': True , 'message': 'user logged ouy succefully'}))
+    res.set_cookie('htua' , '' , max_age=0 )
+    return (res , 200)

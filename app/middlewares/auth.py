@@ -8,15 +8,20 @@ def authunticated(db , User):
         @wraps(f)
         def decorated(*args, **kwargs):
             token = None
-            
-            if 'x-access-token' in request.headers:
-                token = request.headers['x-access-token']
+            print(request.cookies.get('htua'))
+            if 'htua' in request.cookies:
+                token = request.cookies ['htua']
             # return 401 if token is not passed
             if not token:
                 return jsonify({'message' : 'Token is missing !!' , 'success': False}), 401
             try:
                 data = jwt.decode(token, os.getenv('SECRET_KEY'), algorithms="HS256")
                 current_user = db.session.query(User).filter(User.id==data['sub']).first()
+                if current_user is None :
+                    return jsonify({
+                    'message' : 'Token is invalid !!' , 'success': False
+                }), 401
+                
             except Exception as e:
                 print(e)
                 return jsonify({

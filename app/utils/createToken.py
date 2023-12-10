@@ -2,10 +2,11 @@ import jwt
 from datetime import datetime, timedelta
 import os
 
+MAX_AGE= 60 *60 *24
 
 def generate_token(user_id):
     payload = {
-        'exp': datetime.utcnow() + timedelta(minutes=15),
+        'exp': datetime.utcnow() + timedelta(seconds=MAX_AGE),
         'iat': datetime.utcnow(),
         'sub': user_id
     }
